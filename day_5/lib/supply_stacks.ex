@@ -1,20 +1,14 @@
 defmodule SupplyStacks do
 
-  # part 1
-  def process_input(lines) do
+  def process_input(lines, options \\ []) do
     [s, i] = lines
     |> String.split("\n\n")
     #|> Enum.filter(fn s -> not String.match?(s, ~r/^#/) end)
     stacks = SupplyStacks.parse_stacks(s)
-    IO.inspect(stacks)
     instructions = SupplyStacks.parse_instructions(i)
-    SupplyStacks.process(stacks, instructions)
+    SupplyStacks.process(stacks, instructions, options)
     |> SupplyStacks.get_tops()
   end
-
-  # # part 2
-  # def process_overlap(lines) do
-  # end
 
   def get_tops(stacks) do
     Enum.join(Enum.map(stacks, &List.last/1),"")
@@ -64,9 +58,9 @@ defmodule SupplyStacks do
   Returns the resulting stack after applying all instructions
 
   """
-  def process(stacks, instructions) do
+  def process(stacks, instructions, options) do
     Enum.reduce(instructions, stacks, fn i,s ->
-      SupplyStacks.apply(s, i)
+      SupplyStacks.apply(s, i, options)
     end)
   end
 
@@ -79,16 +73,21 @@ defmodule SupplyStacks do
   iex> SupplyStacks.apply([["Z", "N"], ["M", "C", "D"], ["P"]], {2, 2, 1})
   [["Z", "N", "D", "C"], ["M"], ["P"]]
   """
-  def apply(stacks, instruction) do
+  def apply(stacks, instruction, options \\ []) do
     {num_blocks, from_index, to_index} = instruction
+    reverse = Keyword.get(options, :reverse, true)
     m = Enum.with_index(stacks, fn element, index -> %{index+1 => element} end)
     |> Enum.reduce(%{}, &Map.merge/2)
     # get value to move
     val = Enum.take(m[from_index],-num_blocks)
     # drop it from old stack
     m = %{ m | from_index => Enum.drop(m[from_index],-num_blocks)}
-    # move it to new stack
-    m = %{ m | to_index => m[to_index] ++ Enum.reverse(val)}
+    # move it to new stack, optionally reversing order
+    m =  if reverse do
+      %{ m | to_index => m[to_index] ++ Enum.reverse(val)}
+    else
+      %{ m | to_index => m[to_index] ++ val}
+    end
     Map.to_list(m)
     |> Enum.map(fn e -> {_i, a} = e; a end)
   end
